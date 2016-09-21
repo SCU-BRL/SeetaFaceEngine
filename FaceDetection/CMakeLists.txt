@@ -1,15 +1,19 @@
-cmake_minimum_required(VERSION 3.1.0)
+cmake_minimum_required(VERSION 2.8.0)
 
 project(seeta_facedet_lib)
 
 # Build options
-option(BUILD_EXAMPLES  "Set to ON to build examples"  ON)
-option(USE_OPENMP      "Set to ON to build use openmp"  ON)
-option(USE_SSE         "Set to ON to build use SSE"  ON)
+option(BUILD_EXAMPLES  "Set to switch to build examples"  ON)
+option(USE_OPENMP      "Set to switch to build use openmp"  ON)
+option(USE_SSE         "Set to switch to build use SSE"  ON)
+option(USE_ARM_NEON    "Set to switch to build use arm-neon" OFF)
 
 # Use C++11
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_BUILD_TYPE "RELEASE")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -std=c++11 -O2 -g -ggdb")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -std=c++11 -O2")
+#set(CMAKE_CXX_STANDARD 11)
+#set(CMAKE_CXX_STANDARD_REQUIRED ON)
 message(STATUS "C++11 support has been enabled by default.")
 
 # Use SSE
@@ -17,6 +21,9 @@ if (USE_SSE)
     add_definitions(-DUSE_SSE)
     message(STATUS "Use SSE")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse4.1")
+elseif(USE_ARM_NEON)
+    add_definitions(-DUSE_ARM_NEON)
+    message(STATUS "Use ARM_NEON")
 endif()
 
 # Use OpenMP

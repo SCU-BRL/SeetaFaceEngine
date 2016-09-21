@@ -248,6 +248,34 @@ void SURFFeatureMap::MaskIntegralChannel() {
     result = _mm_and_si128(data, dx_mask);
     _mm_storeu_si128(src++, result);
   }
+#elif USE_ARM_NEON
+  int32x4_t dx;
+  int32x4_t dy;
+  int32x4_t dx_mask;
+  int32x4_t dy_mask;
+  int32x4_t zero = vmovq_n_s32(0);
+  int32_t xor_mask[4] ={-1,-1,0, 0};
+  int32x4_t xor_bits = vld1q_s32(xor_mask);
+  int32x4_t data;
+  int32x4_t result;
+  int32_t *src = reinterpret_cast<int32_t*>(int_img_.data());
+  for (int32_t i = 0; i < len; i++)
+  {
+      dx = vmovq_n_s32(*(grad_x++));
+      dy = vmovq_n_s32(*(grad_y++));
+      dx_mask = veorq_s32(vreinterpretq_s32_u32(vcltq_s32(dx, zero)), xor_bits);
+      dy_mask = veorq_s32(vreinterpretq_s32_u32(vcltq_s32(dy, zero)), xor_bits);
+
+      data = vld1q_s32(src);
+      result = vandq_s32(data, dy_mask);
+      vst1q_s32(src, result);
+      src +=4;
+
+      data = vld1q_s32(src);
+      result = vandq_s32(data, dx_mask);
+      vst1q_s32(src, result);
+      src += 4;
+  }
 #else
   int32_t dx, dy, dx_mask, dy_mask, cmp;
   int32_t xor_bits[] = {-1, -1, 0, 0};
@@ -317,6 +345,36 @@ void SURFFeatureMap::VectorCumAdd(int32_t* x, int32_t len,
     _mm_storeu_si128(z2, z1);
     z2 = y2;
   }
+#elif USE_ARM_NEON
+    int32x4_t x1;
+    int32x4_t y1;
+    int32x4_t z1;
+    int32_t *x2 = reinterpret_cast<int32_t *>(x);
+    int32_t *y2 = reinterpret_cast<int32_t *>(x + num_channel);
+    int32_t *z2 = y2;
+
+    len = len / num_channel - 1;
+    int32_t i=0;
+    for(; i < len; i++)
+    {
+        // first 4 channels
+        x1 = vld1q_s32(x2);
+        y1 = vld1q_s32(y2);
+        z1 = vaddq_s32(x1,y1);
+        vst1q_s32(z2,z1);
+        x2 += 4;
+        y2 += 4;
+        z2 = y2;
+
+        // second 4 channels
+        x1 = vld1q_s32(x2);
+        y1 = vld1q_s32(y2);
+        z1 = vaddq_s32(x1,y1);
+        vst1q_s32(z2,z1);
+        x2 += 4;
+        y2 += 4;
+        z2 = y2;
+    }
 #else
   int32_t cols = len / num_channel - 1;
   for (int32_t i = 0; i < cols; i++) {

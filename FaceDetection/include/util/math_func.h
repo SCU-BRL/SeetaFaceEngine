@@ -34,6 +34,8 @@
 
 #ifdef USE_SSE
 #include <immintrin.h>
+#elif USE_ARM_NEON
+#include <arm_neon.h>
 #endif
 
 #include <cstdint>
@@ -66,6 +68,21 @@ class MathFunction {
     }
     for (; i < len; i++)
       *(z + i) = (*(x + i)) + (*(y + i));
+#elif USE_ARM_NEON
+    int32x4_t x1;
+    int32x4_t y1;
+    const int32_t *px = reinterpret_cast<const int32_t*>(x);
+    const int32_t *py = reinterpret_cast<const int32_t*>(y);
+    int32_t *pz = reinterpret_cast<int32_t*>(z);
+
+    for(i=0;i<len-4;i +=4)
+    {
+        x1 = vld1q_s32(px+i);
+        y1 = vld1q_s32(py+i);
+        vst1q_s32(pz+i,vaddq_s32(x1,y1));
+    }
+    for(;i< len;i++)
+        *(z+i) = (*(x+i)) + (*(y+i));
 #else
     for (i = 0; i < len; i++)
       *(z + i) = (*(x + i)) + (*(y + i));
@@ -90,6 +107,21 @@ class MathFunction {
     }
     for (; i < len; i++)
       *(z + i) = (*(x + i)) - (*(y + i));
+#elif USE_ARM_NEON
+    int32x4_t x1;
+    int32x4_t y1;
+    const int32_t *px = reinterpret_cast<const int32_t*>(x);
+    const int32_t *py = reinterpret_cast<const int32_t*>(y);
+    int32_t *pz = reinterpret_cast<int32_t*>(z);
+
+    for(i=0;i<len-4;i +=4)
+    {
+        x1 = vld1q_s32(px+i);
+        y1 = vld1q_s32(py+i);
+        vst1q_s32(pz+i,vsubq_s32(x1,y1));
+    }
+    for(;i< len;i++)
+        *(z+i) = (*(x+i)) - (*(y+i));
 #else
     for (i = 0; i < len; i++)
       *(z + i) = (*(x + i)) - (*(y + i));
@@ -111,6 +143,20 @@ class MathFunction {
     }
     for (; i < len; i++)
       dest[i] = (src[i] >= 0 ? src[i] : -src[i]);
+#elif USE_ARM_NEON
+    int32x4_t val;
+    int32x4_t val_abs;
+    const int32_t *px = reinterpret_cast<const int32_t*>(src);
+    int32_t *pz = reinterpret_cast<int32_t*>(dest);
+
+    for(i=0;i<len-4;i +=4)
+    {
+        val = vld1q_s32(px+i);
+        val_abs = vabsq_s32(val);
+        vst1q_s32(pz+i,val_abs);
+    }
+    for(;i< len;i++)
+        *(dest+i) = (*(src+i)) > 0 ? (*(src+i)) : -(*(src+i));
 #else
     for (i = 0; i < len; i++)
       dest[i] = (src[i] >= 0 ? src[i] : -src[i]);
@@ -130,6 +176,18 @@ class MathFunction {
     }
     for (; i < len; i++)
       *(dest + i) = (*(src + i)) * (*(src + i));
+#elif USE_ARM_NEON
+    int32x4_t x1;
+    const int32_t *px = reinterpret_cast<const int32_t*>(src);
+    int32_t *pz = reinterpret_cast<int32_t*>(dest);
+
+    for(i=0;i<len-4;i +=4)
+    {
+        x1 = vld1q_s32(px+i);
+        vst1q_s32(pz+i,vmulq_s32(x1,x1));
+    }
+    for(;i< len;i++)
+        *(dest+i) = (*(src+i)) * (*(src+i));
 #else
     for (i = 0; i < len; i++)
       *(dest + i) = (*(src + i)) * (*(src + i));
@@ -155,6 +213,24 @@ class MathFunction {
     prod = buf[0] + buf[1] + buf[2] + buf[3];
     for (; i < len; i++)
       prod += x[i] * y[i];
+#elif USE_ARM_NEON
+    float32x4_t x1;
+    float32x4_t y1;
+    float32x4_t z1 = vmovq_n_f32(0.0);
+    float prod;
+    float buf[4];
+
+    for(i=0;i<len-4;i +=4)
+    {
+        x1 = vld1q_f32(x+i);
+        y1 = vld1q_f32(y+i);
+        // z1 = z1 + x1 * y1
+        z1 = vmlaq_f32(z1,x1,y1);
+    }
+    vst1q_f32(&buf[0],z1);
+    prod = buf[0] + buf[1] + buf[2] + buf[3];
+    for(;i<len;i++)
+        prod += x[i] *y[i];
 #else
     for (i = 0; i < len; i++)
         prod += x[i] * y[i];

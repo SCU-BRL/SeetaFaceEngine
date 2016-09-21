@@ -89,6 +89,12 @@ int main(int argc, char** argv) {
   cout << "SSE is not used." << endl;
 #endif
 
+#ifdef USE_ARM_NEON
+  cout << "ARM_NEON is used." << endl;
+#else
+  cout << "ARM_NEON is not used." << endl;
+#endif
+
   cout << "Image size (wxh): " << img_data.width << "x" 
       << img_data.height << endl;
 
