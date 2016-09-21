@@ -217,7 +217,6 @@ class MathFunction {
     float32x4_t x1;
     float32x4_t y1;
     float32x4_t z1 = vmovq_n_f32(0.0);
-    float prod;
     float buf[4];
 
     for(i=0;i<len-4;i +=4)
